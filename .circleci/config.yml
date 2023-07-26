@@ -61,11 +61,14 @@ workflows:
     jobs:
       - deploy_vercel
       # This task is just to show how to read the env var set in the "deploy_vercel" step
-      - output_deployment_url
-      # - cypress/run:
-      #     # This is the reccommended approach as per the Cypress docs (https://docs.cypress.io/guides/continuous-integration/circleci).
-      #     # I cannot find a way to pass the DEPLOYMENT_URL var to this step. I don't believe it's possible. Without this, cypress takes the base path from cypress.config.js.
-      #     # I have tried deconstructing this into the "deploy_vercel" job with no success.
-      #     cypress-command: npx cypress run --config baseUrl=${DEPLOYMENT_URL}
-      #     requires:
-      #       - deploy_vercel
+      # https://support.circleci.com/hc/en-us/articles/10816400480411-How-to-pass-environment-variables-between-jobs
+      - output_deployment_url:
+          requires:
+            - deploy_vercel
+      - cypress/run:
+          # This is the reccommended approach as per the Cypress docs (https://docs.cypress.io/guides/continuous-integration/circleci).
+          # I cannot find a way to pass the DEPLOYMENT_URL var to this step. I don't believe it's possible. Without this, cypress takes the base path from cypress.config.js.
+          # I have tried deconstructing this into the "deploy_vercel" job with no success.
+          cypress-command: npx cypress run --config baseUrl=${DEPLOYMENT_URL}
+          requires:
+            - output_deployment_url
