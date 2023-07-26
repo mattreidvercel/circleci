@@ -28,7 +28,7 @@ jobs:
             DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN | grep -o "https://.*")
             echo "export DEPLOYMENT_URL='$DEPLOYMENT_URL'" >> $BASH_ENV
       - run: |
-          # verify; optional step
+          # verify; print deployment url
           printenv DEPLOYMENT_URL
 
 workflows:
