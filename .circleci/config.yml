@@ -1,5 +1,7 @@
 version: 2.1
+
 orbs:
+  # this should package up all the cypress commands for us to avoid single line installs etc
   cypress: cypress-io/cypress@3.1.3
 
 executors:
@@ -10,6 +12,8 @@ executors:
 
 jobs:
   deploy_vercel:
+    # Env vars added to CircleCI: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+    # https://circleci.com/docs/set-environment-variable/#set-an-environment-variable-in-a-project
     executor: basic
     steps:
       - checkout
@@ -23,6 +27,7 @@ jobs:
           name: Build Project Artifacts
           command: vercel build --token=$VERCEL_TOKEN
       - run:
+          # Sets the DEPLOYMENT_URL env var. Added a grep command for some reason this command is returning not just the preview url but output logs too. Hack!
           name: Deploy Project Artifacts to Vercel
           command: |
             DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN | grep -o "https://.*")
@@ -30,8 +35,37 @@ jobs:
       - run: |
           # verify; print deployment url
           printenv DEPLOYMENT_URL
+      - run:
+          # copy the env vars to a local file
+          name: Copy env vars to file
+          command: cp $BASH_ENV bash.env
+      - persist_to_workspace:
+          # add the local file to the workspace so it can be read from other jobs
+          root: .
+          paths:
+            - bash.env
+
+  output_deployment_url:
+    executor: basic
+    steps:
+      - attach_workspace:
+          at: .
+      - run: |
+          # add contents of bash.env to the local env vars
+          cat bash.env > $BASH_ENV
+      - run: |
+          printenv DEPLOYMENT_URL
 
 workflows:
   main:
     jobs:
       - deploy_vercel
+      # This task is just to show how to read the env var set in the "deploy_vercel" step
+      - output_deployment_url
+      - cypress/run:
+          # This is the reccommended approach as per the Cypress docs (https://docs.cypress.io/guides/continuous-integration/circleci).
+          # I cannot find a way to pass the DEPLOYMENT_URL var to this step. I don't believe it's possible. Without this, cypress takes the base path from cypress.config.js.
+          # I have tried deconstructing this into the "deploy_vercel" job with no success.
+          cypress-command: npx cypress run --config baseUrl=${DEPLOYMENT_URL}
+          requires:
+            - deploy_vercel
