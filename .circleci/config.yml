@@ -39,8 +39,8 @@ jobs:
           # copy the env vars to a local file
           name: Copy env vars to file
           command: cp $BASH_ENV bash.env
+      # add the local file to the workspace so it can be read from other jobs
       - persist_to_workspace:
-          # add the local file to the workspace so it can be read from other jobs
           root: .
           paths:
             - bash.env
